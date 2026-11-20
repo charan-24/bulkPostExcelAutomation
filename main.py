@@ -32,7 +32,6 @@ def extract_parcel_as_json(image_path):
     3. Receiver pincode: The 6-digit Indian PIN code.
     4. Receiver name: Recipient's name written next to "To".
     5. Receiver Mobile No: Primary recipient phone number.
-    6. Receiver Alt Contact: Any secondary phone number if present. If only one exists, leave blank string.
     
     Return the result STRICTLY as a valid JSON object with these exact keys:
     {
@@ -40,8 +39,7 @@ def extract_parcel_as_json(image_path):
       "Weight": "...",
       "Pincode": "...",
       "Name": "...",
-      "Mobile": "...",
-      "AltContact": "..."
+      "Mobile": "..."    
     }
     """
     
@@ -109,7 +107,6 @@ def update_excel_register(booking_date_str, extracted_data_list, template_path="
     col_pincode = headers.get("RECEIVER PINCODE")
     col_name = headers.get("RECEIVER NAME")
     col_mobile = headers.get("RECEIVER MOBILE NO")
-    col_alt = headers.get("RECEIVER ALT CONTACT")
     col_serial = headers.get("SERIAL NUMBER")
     
     # Scan existing records to find max serial and next available row
@@ -136,7 +133,6 @@ def update_excel_register(booking_date_str, extracted_data_list, template_path="
         pincode = data.get("Pincode")
         name = data.get("Name")
         mobile = data.get("Mobile")
-        alt = data.get("AltContact", "")
         
         if barcode in existing_barcodes:
             # Update existing row
@@ -171,12 +167,35 @@ def update_excel_register(booking_date_str, extracted_data_list, template_path="
         if col_pincode and pincode: ws.cell(row=target_row, column=col_pincode, value=str(pincode))
         if col_name and name: ws.cell(row=target_row, column=col_name, value=name)
         if col_mobile and mobile: ws.cell(row=target_row, column=col_mobile, value=str(mobile))
-        if col_alt and alt: ws.cell(row=target_row, column=col_alt, value=str(alt)) if alt else ws.cell(row=target_row, column=col_alt, value="123-123-1234")  # Placeholder for missing AltContact
 
     wb.save(output_filename)
     print(f"Successfully updated {output_filename}")
 
-process_photo_batch("18.11.26", [
-    "./images/parcel2.jpeg",
-    "./images/parcel3.jpeg",
-])
+IMAGE_FOLDER = "./images/211126"
+BATCH_SIZE = 10
+
+image_paths = [
+    os.path.join(IMAGE_FOLDER, filename)
+    for filename in sorted(os.listdir(IMAGE_FOLDER))
+        if filename.lower().endswith((".jpeg", ".jpg", ".png"))
+]
+
+# Store the photo paths as arrays of up to 10 strings.
+image_batches = [
+    image_paths[start:start + BATCH_SIZE]
+    for start in range(0, len(image_paths), BATCH_SIZE)
+]
+
+# Failed photo paths from the previous batch runs.
+failed_image_paths = [
+    "./images/211126/Lakshmi.jpeg"
+]
+
+# Batch the failed paths; each batch contains at most 10 photos.
+failed_image_batches = [
+    failed_image_paths[start:start + BATCH_SIZE]
+    for start in range(0, len(failed_image_paths), BATCH_SIZE)
+]
+
+for failed_batch in failed_image_batches:
+    process_photo_batch("21.11.26", failed_batch)
